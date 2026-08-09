@@ -28,6 +28,35 @@ export default function FleetDashboard() {
     }
   };
 
+  /**
+   * Automatically calculates status based on Odometer reading.
+   * Standard 5,000 km PM cycle logic:
+   * - Odometer >= 5,000 km -> PM_REQUIRED
+   * - Odometer >= 4,500 km -> PM_APPROACHING
+   * - Otherwise            -> AVAILABLE
+   */
+  const getComputedStatus = (truck) => {
+    // Retain manual operational overrides
+    if (truck.status === 'GROUNDED' || truck.status === 'IN_SHOP') {
+      return truck.status;
+    }
+
+    const odo = Number(truck.current_odometer) || 0;
+    const lastPm = Number(truck.last_pm_odometer) || 0;
+    const interval = Number(truck.pm_interval) || 5000;
+
+    // Distance driven since last PM (or total odometer if last_pm isn't tracked)
+    const kmSinceLastPm = lastPm > 0 ? odo - lastPm : odo;
+
+    if (kmSinceLastPm >= interval) {
+      return 'PM_REQUIRED';
+    } else if (kmSinceLastPm >= interval - 500) {
+      return 'PM_APPROACHING';
+    }
+
+    return 'AVAILABLE';
+  };
+
   const handleDelete = async (id, plateNumber) => {
     if (window.confirm(`Are you sure you want to permanently delete truck ${plateNumber}?`)) {
       await supabase.from('trucks').delete().eq('id', id);
@@ -45,19 +74,21 @@ export default function FleetDashboard() {
     setIsViewModalOpen(true);
   };
 
+  // Filter trucks using their COMPUTED status
   const filteredTrucks = trucks.filter((truck) => {
     const plate = (truck.plate_number || '').toLowerCase();
     const driver = (truck.assigned_driver || '').toLowerCase();
-    const status = (truck.status || '').toLowerCase();
+    const computedStatus = getComputedStatus(truck).toLowerCase();
     const search = searchTerm.toLowerCase();
 
-    return plate.includes(search) || driver.includes(search) || status.includes(search);
+    return plate.includes(search) || driver.includes(search) || computedStatus.includes(search);
   });
 
+  // Calculate live stats based on dynamic computed status
   const totalFleet = trucks.length;
-  const availableCount = trucks.filter((t) => t.status === 'AVAILABLE').length;
-  const maintenanceCount = trucks.filter((t) => ['IN_SHOP', 'PM_APPROACHING', 'PM_REQUIRED'].includes(t.status)).length;
-  const groundedCount = trucks.filter((t) => t.status === 'GROUNDED').length;
+  const availableCount = trucks.filter((t) => getComputedStatus(t) === 'AVAILABLE').length;
+  const maintenanceCount = trucks.filter((t) => ['IN_SHOP', 'PM_APPROACHING', 'PM_REQUIRED'].includes(getComputedStatus(t))).length;
+  const groundedCount = trucks.filter((t) => getComputedStatus(t) === 'GROUNDED').length;
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -83,8 +114,12 @@ export default function FleetDashboard() {
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-8 rounded-2xl border border-[#4A69B3]/20 shadow-sm">
           <div className="flex items-center space-x-4">
-            <div className="p-4 bg-[#4A69B3] text-white rounded-2xl shadow-md shadow-[#4A69B3]/25">
-              <Truck className="w-8 h-8" />
+            <div className="w-16 h-16 rounded-full overflow-hidden shadow-md border-2 border-[#4A69B3]/20 flex-shrink-0 bg-white">
+              <img 
+                src="/logo.jpg" 
+                alt="Madayaw Gas Logo" 
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
@@ -170,7 +205,8 @@ export default function FleetDashboard() {
               </thead>
               <tbody className="divide-y divide-[#4A69B3]/10 text-base">
                 {filteredTrucks.map((truck) => {
-                  const badge = getStatusBadge(truck.status);
+                  const computedStatus = getComputedStatus(truck);
+                  const badge = getStatusBadge(computedStatus);
                   return (
                     <tr key={truck.id} className="hover:bg-[#FFEC89]/15 transition-colors">
                       <td className="py-5 px-6 font-bold text-slate-900 text-lg tracking-wide">
