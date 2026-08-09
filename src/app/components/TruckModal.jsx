@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { X, Truck, User, Gauge, Activity } from 'lucide-react';
 
 export default function TruckModal({ truck, closeModal, refreshData }) {
   const [formData, setFormData] = useState({
@@ -13,7 +14,6 @@ export default function TruckModal({ truck, closeModal, refreshData }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // If editing an existing truck, pre-fill the form
   useEffect(() => {
     if (truck) {
       setFormData({
@@ -37,7 +37,6 @@ export default function TruckModal({ truck, closeModal, refreshData }) {
 
     try {
       if (truck) {
-        // Update existing truck
         const { error } = await supabase
           .from('trucks')
           .update({
@@ -50,7 +49,6 @@ export default function TruckModal({ truck, closeModal, refreshData }) {
 
         if (error) throw error;
       } else {
-        // Insert new truck
         const { error } = await supabase.from('trucks').insert([
           {
             plate_number: formData.plate_number,
@@ -63,11 +61,9 @@ export default function TruckModal({ truck, closeModal, refreshData }) {
         if (error) throw error;
       }
 
-      // Refresh table data and close modal
       await refreshData();
       closeModal();
     } catch (err) {
-      console.error(err);
       setErrorMsg(err.message || 'Failed to save truck.');
     } finally {
       setLoading(false);
@@ -75,97 +71,109 @@ export default function TruckModal({ truck, closeModal, refreshData }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full text-gray-800">
-        <h2 className="text-xl font-bold mb-4">
-          {truck ? 'Edit Truck' : 'Add New Truck'}
-        </h2>
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full border border-slate-100 overflow-hidden">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50/50">
+          <h2 className="text-lg font-bold text-slate-900">
+            {truck ? 'Edit Truck Details' : 'Add New Truck'}
+          </h2>
+          <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        {errorMsg && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded">
-            {errorMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Plate Number
-            </label>
-            <input
-              type="text"
-              name="plate_number"
-              required
-              placeholder="e.g. MDY-104"
-              value={formData.plate_number}
-              onChange={handleChange}
-              className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
+        {/* Body Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {errorMsg && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium rounded-xl">
+              {errorMsg}
+            </div>
+          )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Assigned Driver
-            </label>
-            <input
-              type="text"
-              name="assigned_driver"
-              required
-              placeholder="Driver's Full Name"
-              value={formData.assigned_driver}
-              onChange={handleChange}
-              className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
+            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Plate Number</label>
+            <div className="relative">
+              <Truck className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                name="plate_number"
+                required
+                placeholder="e.g. MDY-104"
+                value={formData.plate_number}
+                onChange={handleChange}
+                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-800"
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Current Odometer (km)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              name="current_odometer"
-              required
-              value={formData.current_odometer}
-              onChange={handleChange}
-              className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
+            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Assigned Driver</label>
+            <div className="relative">
+              <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                name="assigned_driver"
+                required
+                placeholder="Full Name"
+                value={formData.assigned_driver}
+                onChange={handleChange}
+                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-800"
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
-            >
-              <option value="AVAILABLE">AVAILABLE</option>
-              <option value="GROUNDED">GROUNDED</option>
-              <option value="IN_SHOP">IN SHOP</option>
-              <option value="PM_APPROACHING">PM APPROACHING</option>
-              <option value="PM_REQUIRED">PM REQUIRED</option>
-            </select>
+            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Odometer Reading (km)</label>
+            <div className="relative">
+              <Gauge className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="number"
+                step="0.1"
+                name="current_odometer"
+                required
+                value={formData.current_odometer}
+                onChange={handleChange}
+                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-800"
+              />
+            </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Fleet Status</label>
+            <div className="relative">
+              <Activity className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-800 appearance-none"
+              >
+                <option value="AVAILABLE">AVAILABLE</option>
+                <option value="GROUNDED">GROUNDED</option>
+                <option value="IN_SHOP">IN SHOP</option>
+                <option value="PM_APPROACHING">PM APPROACHING</option>
+                <option value="PM_REQUIRED">PM REQUIRED</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end space-x-2 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={closeModal}
-              disabled={loading}
-              className="px-4 py-2 border text-gray-600 rounded hover:bg-gray-100 disabled:opacity-50"
+              className="px-4 py-2 border border-slate-200 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-500/20 transition-all disabled:opacity-50"
             >
-              {loading ? 'Saving...' : truck ? 'Update Truck' : 'Add Truck'}
+              {loading ? 'Saving...' : truck ? 'Save Changes' : 'Add Truck'}
             </button>
           </div>
         </form>
